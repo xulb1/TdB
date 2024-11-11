@@ -8,23 +8,16 @@ const helmet = require("helmet");
 const csrf = require("csurf");
 const csrfProtection = csrf({ cookie: true });
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const saltRounds = 10; // Cost factor for the bcrypt algorithm
-// const doubleCsrf = require("csrf-csrf");
-// const { generateToken, // Use this in your routes to provide a CSRF hash + token cookie and token.
-//   validateRequest, // Also a convenience if you plan on making your own middleware.
-//   doubleCsrfProtection, // This is the default CSRF protection middleware.
-// } = doubleCsrf();
 const rateLimit = require("express-rate-limit");
 
-const port = 8000;
 // (A) EXPRESS 
 const app = express();
-// express.use(session);
-// express.get("/csrf-token", myRoute);
-// express.use(doubleCsrfProtection);
+const port = 8000;
+const secretKey = "your_secret_key";
 
-// Enable various security headers
-// app.use(helmet());
+
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
@@ -33,7 +26,7 @@ app.use(
       styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
       imgSrc: ["'self'", "data:", "gravatar.com"],
-      frameSrc: ["'self'", "http://localhost:3000/", "http://localhost:4000/", "https://ent.univ-ubs.fr", "https://www-ensibs.univ-ubs.fr", "https://www.univ-ubs.fr"],
+      frameSrc: ["'self'", "https://www.univ-ubs.fr/fr/index.html", "http://gdscol.ensibs.fr:3000/GdScol/liste_etudiant", "https://www-ensibs.univ-ubs.fr/fr/index.html", "http://gdmi.ensibs.fr:3000/", "http://gdmaq.ensibs.fr:3000/", "http://gdprocint.ensibs.fr:3000/"],
       connectSrc: ["'self'"],
     },
   })
@@ -90,6 +83,23 @@ const validateUser =  (user, password) => {
   return bcrypt.compareSync(password,  user.password)
 }
 
+// Middleware d'authentification
+function authMiddleware(req, res, next) {
+  const token = req.cookies.authToken;
+
+  if (!token) {
+    return res.status(401).json({ message: "Access denied. No token provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, secretKey);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(400).json({ message: "Invalid token." });
+  }
+}
+
 
 let Tokensarray = [];
 // (B) HOME PAGE - OPEN TO ALL
@@ -121,19 +131,27 @@ app.post("/api/v1/auth/user-auth",  (req, res) => {
   // check if the user email and password are correct
   if (user  && validateUser(user, password)) {
     console.log("user found and password ok");
+    // Set the token as cookie
+    const token = jwt.sign({ email: user.email }, secretKey, { expiresIn: "1h" });
+    res.cookie("authToken", token, { httpOnly: true, secure: true });
     // serve the dashboard page
     res.sendFile(path.join(__dirname, "./public/dashboard.html"));
     return;
   }
-
   res.status(401).json({ message: "Invalid credentials" });
 });
 
-app.get("/dashboard", (req, res) => {
+app.get("/api/v1/auth/logout", (req, res) => {
+  res.clearCookie("authToken");
+  res.json({ message: "Successfully logged out" });
+});
+
+app.get("/dashboard", authMiddleware, (req, res) => {
   // Render the dashboard page
   // res.render("dashboard");
   res.sendFile(path.join(__dirname, "./public/dashboard.html"));
 });
+
 
 app.listen(port, () => {
   console.log(`Server is running on : http://localhost:${port}`);

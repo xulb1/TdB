@@ -1,20 +1,40 @@
 document.addEventListener("DOMContentLoaded", function() {
   // Récupérer la div avec l'id "nav-content"
   const navContent = document.getElementById("nav-content");
+  
   // deconnect when the button with id docBtn is clicked
   const docBtn = document.getElementById("decoBtn");
-  docBtn.addEventListener("click", function() {
-      window.location.href = "/";
+  docBtn.addEventListener("click", function () {
+    // ajax request to deconnect
+    fetch("/api/v1/auth/logout", {
+      method: "GET",
+      credentials: "same-origin", // include cookies in the request
+    })
+    .then(response => {
+      if (response.ok) {
+        // if the response is ok, we redirect to the login page
+        window.location.href = "/";
+      } else {
+        console.error("Failed to log out");
+      }
+    })
+    .catch(error => {
+      console.error("An error occurred during logout:", error);
+    });
   });
 
   // Recuperer les Données des services
   const services = [
-    { nom: "Service processus internes", url: "http://localhost:3000/" },
-    { nom: "Service Soutenance", url: "https://www.univ-ubs.fr/fr/index.html" },
-    { nom: "Service Alternances", url: "https://www.univ-ubs.fr/fr/index.html" },
-    { nom: "Service Absences", url: "https://www.univ-ubs.fr/fr/index.html" },
-    { nom: "Service Maquettes", url: "http://localhost:4000/" },
-    { nom: "Service Stages", url: "https://ent.univ-ubs.fr/uPortal/render.userLayoutRootNode.uP" }
+    { nom: "Service Calendrier", url: "https://www-ensibs.univ-ubs.fr/fr/index.html", droit: "everyone" },
+    { nom: "Service Absences", url: "https://www.univ-ubs.fr/fr/index.html", droit: "everyone" },
+    { nom: "Service Scolarité", url: "http://gdscol.ensibs.fr:3000/GdScol/liste_etudiant", droit: "everyone" },
+    { nom: "Service Soutenance", url: "https://www-ensibs.univ-ubs.fr/fr/index.html", droit: "everyone" },
+    { nom: "Service Intervenant", url: "https://www-ensibs.univ-ubs.fr/fr/index.html", droit: "everyone"},
+    { nom: "Service Alternances", url: "https://www.univ-ubs.fr/fr/index.html", droit: "everyone" },
+    { nom: "Service Stages", url: "https://www-ensibs.univ-ubs.fr/fr/index.html", droit: "everyone" },
+    { nom: "Service Mobilité internationale", url: "http://gdmi.ensibs.fr:3000/", droit: "everyone" },
+    { nom: "Service Maquettes", url: "http://gdmaq.ensibs.fr:3000/", droit: "everyone" },
+    { nom: "Service Processus Internes", url: "http://gdprocint.ensibs.fr:3000/", droit: "everyone" }
   ];
 
   function genererElements() {
