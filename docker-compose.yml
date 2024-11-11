@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"   # Mappe le port 8000 du conteneur sur le port 8000 de l'hôte
+    volumes:
+      - .:/app        # Permet de recharger les modifications faites aux fichiers dans le conteneur
+      - /app/node_modules # Pour éviter de partager les node_modules entre l'hôte et le conteneur
+    environment:
+      - NODE_ENV=production
