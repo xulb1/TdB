@@ -25,7 +25,7 @@ app.use(
       fontSrc: ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
       imgSrc: ["'self'", "data:", "gravatar.com"],
       frameSrc: ["'self'", "https://www.univ-ubs.fr/fr/index.html", "http://gdscol.ensibs.fr:3000/GdScol/liste_etudiant", "https://www-ensibs.univ-ubs.fr/fr/index.html", "http://gdmi.ensibs.fr:3000/", "http://gdmaq.ensibs.fr:3000/", "http://gdprocint.ensibs.fr:3000/"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'"],      
     },
   })
 );
@@ -75,20 +75,15 @@ app.post("/api/v1/auth/user-auth", async (req, res) => {
 
   try {
     // Requête vers l'API d'authentification externe
-    const response = await axios.post("https://rugm.ensibs.fr/auth", { email, password });
+    const response = await axios.post("<route de l'api>", { email, password });
 
-    // Si l'authentification réussit
     if (response.data && response.data.token) {
       const externalToken = response.data.token;
-
-      // Crée un token JWT local pour la session et l'utilisateur
       const token = jwt.sign({ email: email }, secretKey, { expiresIn: "1h" });
-
-      // Stocke le token dans un cookie
       res.cookie("authToken", token, { httpOnly: true, secure: true });
-
       // Redirige vers le tableau de bord
       res.sendFile(path.join(__dirname, "./public/dashboard.html"));
+      
     } else {
       res.status(401).json({ message: "Invalid credentials" });
     }

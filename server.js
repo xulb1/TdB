@@ -6,7 +6,7 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet");
 const csrf = require("csurf");
-const csrfProtection = csrf({ cookie: true });
+const csrfProtection = csrf({ cookie: true});
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const saltRounds = 10; // Cost factor for the bcrypt algorithm
@@ -22,15 +22,21 @@ app.use(
   helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "ajax.googleapis.com"],
+      scriptSrc: [
+        "'self'", 
+        "'unsafe-inline'", 
+        "'unsafe-eval'", 
+        "ajax.googleapis.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "fonts.googleapis.com", "cdnjs.cloudflare.com"],
       fontSrc: ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
       imgSrc: ["'self'", "data:", "gravatar.com"],
-      frameSrc: ["'self'", "http://localhost:3000", "http://localhost:4000", "https://www.univ-ubs.fr/fr/index.html", "http://gdscol.ensibs.fr:3000/GdScol/liste_etudiant", "https://www-ensibs.univ-ubs.fr/fr/index.html", "http://gdmi.ensibs.fr:3000/", "http://gdmaq.ensibs.fr:3000/", "http://gdprocint.ensibs.fr:3000/"],
+      frameSrc: ["'self'", "https://www.univ-ubs.fr/fr/index.html", "http://gdscol.ensibs.fr:3000/GdScol/liste_etudiant", "https://www-ensibs.univ-ubs.fr/fr/index.html", "http://gdmi.ensibs.fr:3000/", "http://gdmaq.ensibs.fr:3000/", "http://gdprocint.ensibs.fr:3000/"],
       connectSrc: ["'self'"],
     },
   })
 );
+
+
 
 // Enable HSTS
 app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true, preload: true }));
@@ -58,15 +64,25 @@ app.use(cookieParser());
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many login attempts. Please try again later.',
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).send(options.message);
+  },
 }));
 app.use(csrfProtection);
 // Set EJS as a template engine
 app.set("view engine", "ejs");
 
 
+// Middleware de centralisation des erreurs
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong!');
+});
+
+
 const hashPassword =  (password) => {
   const hash = bcrypt.hashSync(password, saltRounds)
-  console.log("hashed password", hash); // return hash
   return hash;
 }
 
@@ -79,7 +95,7 @@ const users = [
 ];
 
 const validateUser =  (user, password) => {
-  console.log("validating password", password, user.password)
+  console.log(">>> Validating password ...")
   return bcrypt.compareSync(password,  user.password)
 }
 
@@ -110,12 +126,10 @@ app.get("/", (req, res) => {
   res.render("index", { csrfToken });
 });
 
+
 // (D5) LOGIN ENDPOINT
 app.post("/api/v1/auth/user-auth",  (req, res) => {
   const { email, password, _csrf } = req.body;
-  //console.log(email);
-  //console.log(password);
-  //console.log(_csrf);
   const index = Tokensarray.indexOf(_csrf);
   // Verify CSRF token
   if (index < 0) {
@@ -123,17 +137,15 @@ app.post("/api/v1/auth/user-auth",  (req, res) => {
   }
   //Remove the used token from our array
   Tokensarray = Tokensarray.filter(it => it != _csrf);
-  //console.log(Tokensarray)
-  console.log("searching email", email);
+  console.log(">>> Searching email ...");
   // Find the user by matching the provided email
   const user = users.find((u) => u.email === email);
-  console.log("password validation");
-  // check if the user email and password are correct
+
   if (user  && validateUser(user, password)) {
-    console.log("user found and password ok");
+    console.log("   [x] User found and password : OK");
     // Set the token as cookie
     const token = jwt.sign({ email: user.email }, secretKey, { expiresIn: "1h" });
-    res.cookie("authToken", token, { httpOnly: true, secure: true });
+    res.cookie("authToken", token, { httpOnly: true, secure: true, sameSite: 'lax' });
     // serve the dashboard page
     res.sendFile(path.join(__dirname, "./public/dashboard.html"));
     return;
@@ -147,8 +159,6 @@ app.get("/api/v1/auth/logout", (req, res) => {
 });
 
 app.get("/dashboard", authMiddleware, (req, res) => {
-  // Render the dashboard page
-  // res.render("dashboard");
   res.sendFile(path.join(__dirname, "./public/dashboard.html"));
 });
 
