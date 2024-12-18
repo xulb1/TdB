@@ -7,15 +7,25 @@ Le tableau de bord sert à faire le lien entre les différents services de l'éc
 # Lancement du projet
 ## En local : 
 Après avoir récupéré le projet, installer les modules npm nécessaire (N.B. : Si ils sont déjà présents, il est préférable de les supprimer et de les réinstaller, car il peut y avoir des conflits en fonction de la version de npm installée sur votre OS): 
+
 $ `npm i`
+
 Lancer ensuite un audit des modules installés, pour vérifier qu'ils sont bien à jour (dernière version) : 
+
 $ `npm audit`
+
 Si besoin, corrigé les versions des modules obsolètes via : 
+
 $ `npm audit fix`
+
 Après cela, vous pouvez lancer le projet : 
+
 $ `npm start`
+
     ou
+
 $ `node server.js`
+
 
 
 ## En production
